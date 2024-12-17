@@ -8,11 +8,15 @@ connection.
 You connect to the CA with SSH, using your SSH agent to authenticate,
 possibly using the tkey-ssh-agent to talk to a [Tillitis
 TKey](https://tillitis.se/). If successful, you get a cert back that
-you can pipe or paste into a file. Used like this:
+you can pipe or paste into a file. Use it like this:
 
 ```
-$ ssh -p 2222 localhost > cert.pub
+$ ssh -p 2222 user@localhost > cert.pub
 ```
+
+The cert will be valid and limited to the user name you use here. All
+user names are accepted if your public key is in the list of
+authorized keys.
 
 You can then use the certificate to login with SSH to servers which
 trust the same CA.
@@ -38,7 +42,7 @@ both on the CA server and your machine.
   hour.
 
 - We want to show that you can use the Tillitis TKey both as the CA's
-  private key and as forming the user's long-lived identity.
+  private key and as the user's long-lived identity.
 
 - In this scenario with tkey-ssh-ca the system owner can hand out
   TKeys to the users, record the public key (with no or a known USS)

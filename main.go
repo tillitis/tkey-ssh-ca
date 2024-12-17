@@ -16,8 +16,9 @@ import (
 )
 
 func sessionHandler(s ssh.Session) {
-	// Generate a cert that allows the user to login as example.
-	cert, err := genCert(s.PublicKey(), s.User()+"example.com", "example")
+	// Generate a cert that allows the user to login as the user
+	// they used here.
+	cert, err := genCert(s.PublicKey(), s.User(), s.User())
 	if err != nil {
 		log.Printf("cert: couldn't generate cert: %v", err)
 		cert = []byte("server error")
