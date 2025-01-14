@@ -23,7 +23,7 @@ trust the same CA.
 
 The CA can also sign the cert using a TKey. The connection with the
 the TKey happens transparently through the use of
-[tkey-ssh-agent](https://github.com/tillitis/tkey-ssh-agent/] running
+[tkey-ssh-agent](https://github.com/tillitis/tkey-ssh-agent/) running
 both on the CA server and your machine.
 
 *Nota bene*: The TKey is (so far) *not required* to use this program.
