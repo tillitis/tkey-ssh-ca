@@ -19,7 +19,11 @@ user names are accepted if your public key is in the list of
 authorized keys.
 
 You can then use the certificate to login with SSH to servers which
-trust the same CA.
+trust the same CA pubkey:
+
+```
+ssh -i cert.pub user@some-ssh-server
+```
 
 The CA can also sign the cert using a TKey. The connection with the
 the TKey happens transparently through the use of
