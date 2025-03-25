@@ -120,6 +120,7 @@ func main() {
 		Addr:             *listenFlag,
 		Handler:          sessionHandler,
 		PublicKeyHandler: authHandler(conf.UserPubKeys),
+		PasswordHandler:  nil,
 	}
 	s.AddHostKey(hostKeySigner)
 
