@@ -84,8 +84,15 @@ the same pubkey both for the CA and the user. You will then be
 expected to touch your TKey twice: first when authentication to
 tkey-ssh-ca, then to sign the new cert.
 
-Get the users' public keys and place them in `authorized_keys` in the
-tkey-ssh-ca directory, one per line in this format:
+If you want to, you can allow anyone to request a certificate. If you
+want to allow this, start the `tkey-ssh-ca` with the `--insecure`
+flag. NOTE WELL: Anyone who requests a cert and presents a public key
+will get a cert!
+
+If, on the other hand, you want to allow just a list of approved
+identities to request a cert: Get the users' public keys and place
+them in `authorized_keys` in the tkey-ssh-ca directory, one per line
+in this format:
 
 ```
 ssh-ed25519 AAAA... key-id@domain

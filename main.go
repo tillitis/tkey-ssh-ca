@@ -29,8 +29,12 @@ func sessionHandler(s ssh.Session) {
 	}
 }
 
-func authHandler(userPubKeys map[string]UserPubKey) ssh.PublicKeyHandler {
+func authHandler(userPubKeys map[string]UserPubKey, insecure bool) ssh.PublicKeyHandler {
 	return ssh.PublicKeyHandler(func(ctx ssh.Context, key ssh.PublicKey) bool {
+		if insecure {
+			return true
+		}
+
 		mKey := string(gossh.MarshalAuthorizedKey(key))
 		// Drop the newline
 		mKey = mKey[:len(mKey)-1]
@@ -56,7 +60,40 @@ type Config struct {
 	UserPubKeys map[string]UserPubKey
 }
 
-func loadConfig(authFileName string) (Config, error) {
+// loadAuthorized loads and parses list of authorized keys
+func loadAuthorized(authFileName string, userPubKeys map[string]UserPubKey) error {
+	file, err := os.Open(authFileName)
+	defer file.Close()
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	sc := bufio.NewScanner(file)
+
+	for sc.Scan() {
+		words := strings.Fields(sc.Text())
+		// Check length, should be 3.
+		if len(words) != 3 {
+			return fmt.Errorf("parse error")
+		}
+
+		k := words[0] + " " + words[1]
+		uPubKey := UserPubKey{
+			PubKey: k,
+			KeyID:  words[2],
+		}
+
+		userPubKeys[k] = uPubKey
+	}
+
+	if err := sc.Err(); err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	return nil
+}
+
+func loadConfig(authFileName string, insecure bool) (Config, error) {
 	var err error
 
 	conf := Config{
@@ -69,33 +106,10 @@ func loadConfig(authFileName string) (Config, error) {
 		return conf, fmt.Errorf("private key file: %w", err)
 	}
 
-	// Get and parse list of authorized keys
-	file, err := os.Open(authFileName)
-	if err != nil {
-		return conf, fmt.Errorf("%w", err)
-	}
-	defer file.Close()
-
-	sc := bufio.NewScanner(file)
-
-	for sc.Scan() {
-		words := strings.Fields(sc.Text())
-		// Check length, should be 3.
-		if len(words) != 3 {
-			return conf, fmt.Errorf("parse error")
+	if !insecure {
+		if err := loadAuthorized(authFileName, conf.UserPubKeys); err != nil {
+			return conf, fmt.Errorf("%w")
 		}
-
-		k := words[0] + " " + words[1]
-		uPubKey := UserPubKey{
-			PubKey: k,
-			KeyID:  words[2],
-		}
-
-		conf.UserPubKeys[k] = uPubKey
-	}
-
-	if err := sc.Err(); err != nil {
-		return conf, fmt.Errorf("%w", err)
 	}
 
 	return conf, nil
@@ -104,9 +118,11 @@ func loadConfig(authFileName string) (Config, error) {
 func main() {
 	var confFileFlag = flag.String("c", "./authorized_keys", "")
 	var listenFlag = flag.String("l", "127.0.0.1:2222", "")
+	var insecureFlag = flag.Bool("insecure", false, "Disable user authentication")
 
 	flag.Parse()
-	conf, err := loadConfig(*confFileFlag)
+
+	conf, err := loadConfig(*confFileFlag, *insecureFlag)
 	if err != nil {
 		log.Fatalf("couldn't load config file: %v", err)
 	}
@@ -119,7 +135,7 @@ func main() {
 	s := &ssh.Server{
 		Addr:             *listenFlag,
 		Handler:          sessionHandler,
-		PublicKeyHandler: authHandler(conf.UserPubKeys),
+		PublicKeyHandler: authHandler(conf.UserPubKeys, *insecureFlag),
 		PasswordHandler:  nil,
 	}
 	s.AddHostKey(hostKeySigner)
