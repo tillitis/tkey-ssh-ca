@@ -2,57 +2,44 @@
 
 Current state: **Proof of concept**.
 
-A small SSH server that generates SSH user certs on demand over an SSH
-connection.
+A small SSH server that generates SSH user certificates on demand over
+an SSH connection.
 
-You connect to the CA with SSH, using your SSH agent to authenticate,
-possibly using the `tkey-ssh-agent` to talk to a [Tillitis
-TKey](https://tillitis.se/). If successful, you get a cert back that
-you can pipe or paste into a file. Use it like this:
+You connect to the CA with your ordinary SSH client, using public key
+authentication.
+
+Use it like this to first generate a certificate and then use the
+certificate to login to a server:
 
 ```
 $ ssh -p 2222 user@localhost > cert.pub
+$ ssh -i cert.pub user@some-ssh-server
 ```
 
-The cert will be valid and limited to the user name you use here. All
-user names are accepted if your public key is in the list of
-authorized keys.
+The generated certificate will be valid and limited to the user name
+you use here ("user" above). Any user name is currently accepted if
+your public key is in the list of authorized keys.
 
-You can then use the certificate to login with SSH to servers which
-trust the same CA pubkey:
-
-```
-ssh -i cert.pub user@some-ssh-server
-```
-
-The CA can also sign the cert using a TKey. The connection with the
-the TKey happens transparently through the use of
-[tkey-ssh-agent](https://github.com/tillitis/tkey-ssh-agent/) running
-both on the CA server and your machine.
+You can use a TKey both for the user authentication and for the CA.
+The connection with the the TKey happens transparently through the use
+of [tkey-ssh-agent](https://github.com/tillitis/tkey-ssh-agent/)
+running both on the CA server and your machine.
 
 *Nota bene*: The TKey is (so far) *not required* to use this program.
 
 ## Rationale
 
-- System owners don't want to manage individual public keys on the
-  servers or embedded systems.
+- System owners don't want to manage individual users' public keys on
+  the servers or embedded systems.
 
 - Instead, they only install a trusted CA public key on all servers.
 
-- The system owner hands out certs to all trusted users who want to
-  use the servers.
+- The system owner hands out Tillitis TKeys to all trusted users and
+  enrolls them with the `tkey-ssh-ca`.
 
-- The certs can be time-limited, perhaps even very limited, like an
-  hour.
-
-- We want to show that you can use the Tillitis TKey both as the CA's
-  private key and as the user's long-lived identity.
-
-- In this scenario with tkey-ssh-ca the system owner can hand out
-  TKeys to the users, record the public key (with no or a known USS)
-  as allowed users.
-
-- The users can then request short-lived certs at will.
+- Short-lived certificates are automatically generated when needed and
+  specific to certain user roles or hosts, authenticated by the user's
+  long-lived TKey identity.
 
 ## Setup
 
@@ -86,8 +73,8 @@ tkey-ssh-ca, then to sign the new cert.
 
 If you want to, you can allow anyone to request a certificate. If you
 want to allow this, start the `tkey-ssh-ca` with the `--insecure`
-flag. NOTE WELL: Anyone who requests a cert and presents a public key
-will get a cert!
+flag. NOTE WELL: Anyone who requests a certificate and presents a
+public key will get a certificate!
 
 If, on the other hand, you want to allow just a list of approved
 identities to request a cert: Get the users' public keys and place
@@ -108,9 +95,8 @@ $ ./tkey-ssh-ca
 
 ## On the servers
 
-
-Place the CA's public key you extracted to `ca_key.pub` in
-`/etc/ssh` on the servers you want to access.
+Place the CA's public key you extracted to `ca_key.pub` in `/etc/ssh`
+on the servers you want to access.
 
 Add this line:
 
