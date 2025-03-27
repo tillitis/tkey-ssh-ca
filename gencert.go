@@ -39,6 +39,29 @@ func run(cmdLine []string) (string, string, int) {
 	return stdout, stderr, code
 }
 
+func rolePermissions(user string) ([]string, error) {
+	var options []string
+
+	switch user {
+	case "webuser":
+		options = append(options, "-V", "+8h")
+
+	case "admin":
+		options = append(options, "-V", "+30m",
+			"-O", "force-command=internal-sftp",
+			"-O", "no-port-forwarding")
+	case "loguser":
+		options = append(options, "-V", "+52w",
+			"-O", "force-command=/home/admin/dumplog",
+			"-O", "no-port-forwarding")
+	default:
+		return []string{}, fmt.Errorf("unknown user role")
+	}
+
+	return options, nil
+
+}
+
 func genCert(pubkey ssh.PublicKey, keyid string, user string) ([]byte, error) {
 	mKey := gossh.MarshalAuthorizedKey(pubkey)
 	log.Printf("Generating cert of pubkey %s\n", mKey)
@@ -54,13 +77,20 @@ func genCert(pubkey ssh.PublicKey, keyid string, user string) ([]byte, error) {
 		return nil, fmt.Errorf("couldn't write to temp file: %w", err)
 	}
 
+	permissions, err := rolePermissions(user)
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
+	}
+
 	cmdLine := []string{
 		"ssh-keygen",
 		"-Us", "./ca_key.pub",
 		"-I", keyid,
 		"-n", user,
-		f.Name(),
 	}
+
+	cmdLine = append(cmdLine, permissions...)
+	cmdLine = append(cmdLine, f.Name())
 
 	if stdout, stderr, code := run(cmdLine); code != 0 {
 		log.Printf("stdout: %v\nstderr: %v", stdout, stderr)
